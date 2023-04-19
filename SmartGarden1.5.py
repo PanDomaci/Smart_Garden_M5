@@ -16,6 +16,8 @@ dlight_0 = unit.get(unit.DLIGHT, (19,18)) #napevno nastavené piny pro HAT DLigh
 
 relay4_0.set_mode(1) #synchronizované LED s relé - svítí = zapnuto 
 dlight_0.set_mode(0x10) #režim snímání zdroje světla
+SSID = '' #WiFi SSID pro login
+HESLO = '' #WiFi heslo 
 LuxSource = float #hodnota, kterou vrací HAT Dlight senzor
 MoistureNumber = float  #hodnota vlhkosti, kterou vrací WATERING unit
 LampState = str #stav lampy 
@@ -24,6 +26,11 @@ Temp = float  #teplota z integrovaného SHT30 senzoru
 Hum = float #relativní vlhkost vracená SHT30 senzorem
 Baterie = str #stav baterie
 sleeptime = 10*60*1000*1000 #proměnná pro dobu hlubokého spánku (10minut)
+seznamTeplot = []
+seznamHum = []
+seznamHodnotVlhkosti = []
+seznamLUX = []
+
 
 def prumerTeplot(seznamTeplot): #definice funkce, která zprůměruje naměřené hodnoty ze seznamu (list) "seznamTeplot", který je zde jako parametr dané funkce
   pocet = 0
@@ -32,7 +39,7 @@ def prumerTeplot(seznamTeplot): #definice funkce, která zprůměruje naměřen�
     soucet += n
     pocet += 1 
   prumerTeplot = soucet / pocet
-  prumerTeplot = float("%.2f" % round(prumerTeplot, 2))
+  prumerTeplot = float("%.2f" % round(prumerTeplot, 2)) #zaokrouhlení na 2 desetinná místa
   return prumerTeplot
   
 def prumerHum(seznamHum): #definice funkce, která zprůměruje naměřené hodnoty ze seznamu (list) "seznamHum", který je zde jako parametr dané funkce
@@ -42,7 +49,7 @@ def prumerHum(seznamHum): #definice funkce, která zprůměruje naměřené hodn
     soucet += n
     pocet += 1 
   prumerHum = soucet / pocet
-  prumerHum = float("%.2f" % round(prumerHum, 2))
+  prumerHum = float("%.2f" % round(prumerHum, 2))#zaokrouhlení na 2 desetinná místa
   return prumerHum
 
 def prumerVlhkosti(seznamHodnotVlhkosti): #definice funkce, která zprůměruje naměřené hodnoty ze seznamu (list) "seznamHodnotVlhkosti", který je zde jako parametr dané funkce
@@ -52,7 +59,7 @@ def prumerVlhkosti(seznamHodnotVlhkosti): #definice funkce, která zprůměruje 
     soucet += n
     pocet += 1 
   prumerVlhkosti = soucet / pocet
-  prumerVlhkosti = float("%.2f" % round(prumerVlhkosti, 2))
+  prumerVlhkosti = float("%.2f" % round(prumerVlhkosti, 2))#zaokrouhlení na 2 desetinná místa
   return prumerVlhkosti  
 
 def prumerLUX(seznamLUX): #definice funkce, která zprůměruje naměřené hodnoty ze seznamu (list) "seznamLUX", který je zde jako parametr dané funkce
@@ -62,7 +69,7 @@ def prumerLUX(seznamLUX): #definice funkce, která zprůměruje naměřené hodn
     soucet += n
     pocet += 1 
   prumerLUX = soucet / pocet
-  prumerLUX = float("%.2f" % round(prumerLUX, 2))
+  prumerLUX = float("%.2f" % round(prumerLUX, 2))#zaokrouhlení na 2 desetinná místa
   return prumerLUX
 
 def seznamTeplot(): #funkce, která provede 20x měření teploty ze senzoru SHT30 a každý výsledek měření zanese do seznamu 
@@ -144,7 +151,7 @@ label26 = M5TextBox(200, 480, "Text", lcd.FONT_DejaVu24, 0, rotate=0)
 
 
 #rtc.set_datetime((23, 3, 3, 5, 13, 06, 30)) # nastavení RTC čipu (nutné pouze při úplném vybití baterie)
-wifiCfg.doConnect('SSID', 'PASSWORD') # připojení k síti WiFi SSID+heslo 
+wifiCfg.doConnect(SSID, HESLO) # připojení k síti WiFi SSID+heslo 
 
 
 wait(1) #počká 1s po připojení k wifi
@@ -152,26 +159,28 @@ label20.setText(str(wifiCfg.wlan_sta.ifconfig())) #vypíše údaje o síti - vla
 lcd.show()  #funkce displeje - vyvolá změnu obrazu displeje 
 
 while True: #nekonečný cyklus (loop)
-  
-  LuxSource = dlight_0.get_lux()
+  seznamLUX = seznamLUX()
+  LuxSource = prumerLUX(seznamLUX)
   label1.setText(str(LuxSource))
   
   TimeNow = rtc.datetime()
   label22.setText(str(TimeNow))
   
-  Temp = sht30.temperature
+  seznamTeplot = seznamTeplot()
+  Temp = prumerTeplot(seznamTeplot)
   label18.setText(str(Temp))
   
-  Hum = sht30.humidity
+  seznamHum = seznamHum()
+  Hum = prumerHum(seznamHum)
   label16.setText(str(Hum))
   
-  MoistureNumber = Watering_0.get_adc_value()
+  seznamHodnotVlhkosti = seznamHodnotVlhkosti()
+  MoistureNumber = prumerVlhkosti(seznamHodnotVlhkosti)
   label3.setText(str(MoistureNumber))
 
-  baterie = str(map_value((bat.voltage() / 1000), 3.2, 4.3, 0, 100)) + '%'
-  label26.setText(baterie)
+  Baterie = str(map_value((bat.voltage() / 1000), 3.2, 4.3, 0, 100)) + '%'
+  label26.setText(Baterie)
   
-  print((str('Water: ') + str((Watering_0.get_adc_value()))))
   if (MoistureNumber) > 1890:
     Watering_0.set_pump_status(1)
     label5.setText("YES")
@@ -192,7 +201,7 @@ while True: #nekonečný cyklus (loop)
     label14.setText("OFF")
     lcd.show()
   try:
-    req = urequests.request('thingspeak REST API + key')
+    req = urequests.request(method='GET', url='')
     label24.setText('succeeded')
     print(req.text)
   except:
@@ -201,6 +210,6 @@ while True: #nekonečný cyklus (loop)
 
   
   lcd.show()
-  wait(10)
+  wait(540)
   wait_ms(250)
   wait_ms(2)
