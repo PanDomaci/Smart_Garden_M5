@@ -26,6 +26,7 @@ Temp = float  #teplota z integrovaného SHT30 senzoru
 Hum = float #relativní vlhkost vracená SHT30 senzorem
 Baterie = str #stav baterie
 sleeptime = 10*60*1000*1000 #proměnná pro dobu hlubokého spánku (10minut)
+map_value = float
 seznamTeplot = []
 seznamHum = []
 seznamHodnotVlhkosti = []
@@ -47,7 +48,7 @@ def prumerHum(seznamHum): #definice funkce, která zprůměruje naměřené hodn
   soucet = 0.0
   for n in seznamHum:
     soucet += n
-    pocet += 1 
+    pocet = pocet + 1 
   prumerHum = soucet / pocet
   prumerHum = float("%.2f" % round(prumerHum, 2))#zaokrouhlení na 2 desetinná místa
   return prumerHum
@@ -57,7 +58,7 @@ def prumerVlhkosti(seznamHodnotVlhkosti): #definice funkce, která zprůměruje 
   soucet = 0.0
   for n in seznamHodnotVlhkosti:
     soucet += n
-    pocet += 1 
+    pocet = pocet + 1 
   prumerVlhkosti = soucet / pocet
   prumerVlhkosti = float("%.2f" % round(prumerVlhkosti, 2))#zaokrouhlení na 2 desetinná místa
   return prumerVlhkosti  
@@ -65,7 +66,7 @@ def prumerVlhkosti(seznamHodnotVlhkosti): #definice funkce, která zprůměruje 
 def prumerLUX(seznamLUX): #definice funkce, která zprůměruje naměřené hodnoty ze seznamu (list) "seznamLUX", který je zde jako parametr dané funkce
   pocet = 0
   soucet = 0.0
-  for n in seznamHodnotLUX:
+  for n in seznamLUX:
     soucet += n
     pocet += 1 
   prumerLUX = soucet / pocet
@@ -103,7 +104,7 @@ def seznamHodnotVlhkosti(): #funkce, která provede 20x měření vlhkosti z kap
   
   for i in range(20):
     vlhkost = Watering_0.get_adc_value()
-    seznamHum.append(vlhkost)
+    seznamHodnotVlhkosti.append(vlhkost)
     wait(1)
   
   return seznamHodnotVlhkosti
@@ -178,10 +179,12 @@ while True: #nekonečný cyklus (loop)
   MoistureNumber = prumerVlhkosti(seznamHodnotVlhkosti)
   label3.setText(str(MoistureNumber))
 
-  Baterie = str(map_value((bat.voltage() / 1000), 3.2, 4.3, 0, 100)) + '%'
-  label26.setText(Baterie)
+  """Baterie = str(map_value((bat.voltage() / 1000), 3.2, 4.3, 0, 100)) + '%'
+  label26.setText(Baterie)"""
   
-  if (MoistureNumber) > 1890:
+  Baterie = bat.voltage()
+  
+  if MoistureNumber > 1890:
     Watering_0.set_pump_status(1)
     label5.setText("YES")
     lcd.show()
@@ -201,7 +204,7 @@ while True: #nekonečný cyklus (loop)
     label14.setText("OFF")
     lcd.show()
   try:
-    req = urequests.request(method='GET', url='')
+    req = urequests.request(method='GET', url='https://api.thingspeak.com/update?api_key=XXX&field1='+str(LuxSource)+'&field2='+str(MoistureNumber)+'&field3='+str(Hum)+'&field4='+str(Temp)+'&field5='+str(Baterie))
     label24.setText('succeeded')
     print(req.text)
   except:
@@ -210,6 +213,6 @@ while True: #nekonečný cyklus (loop)
 
   
   lcd.show()
-  wait(540)
+  wait(520)
   wait_ms(250)
   wait_ms(2)
